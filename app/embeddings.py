@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from sentence_transformers import SentenceTransformer
 
 
 class EmbeddingService:
     """Reusable sentence-transformers embedding wrapper."""
 
     def __init__(self, model_name: str = "BAAI/bge-small-en-v1.5") -> None:
+        from sentence_transformers import SentenceTransformer
+
         self.model = SentenceTransformer(model_name)
 
     @property
