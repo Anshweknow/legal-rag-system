@@ -57,7 +57,7 @@ class RetrievalService:
                     extra={"collection": self.vector_store.collection_name},
                 )
                 return []
-            query_vector = self.embedder.embed_texts([question])[0]
+            query_vector = self.embedder.embed_query(question)
             results = self.vector_store.search(query_vector=query_vector, limit=self.top_k)
         except VectorStoreError:
             raise
@@ -65,12 +65,22 @@ class RetrievalService:
             logger.exception("retrieval_failed", extra={"top_k": self.top_k})
             raise RetrievalError("Retrieval failed") from exc
 
+        raw_count = len(results)
         chunks = [self._to_retrieved_chunk(result) for result in results]
         chunks = [
             chunk
             for chunk in chunks
             if chunk.document and chunk.page > 0 and chunk.retrieved_text
         ]
+        logger.info(
+            "retrieval_completed",
+            extra={
+                "query_embedding_size": len(query_vector),
+                "retrieved_count": raw_count,
+                "usable_count": len(chunks),
+                "scores": [round(chunk.score, 4) for chunk in chunks],
+            },
+        )
         if not chunks:
             return []
         best_score = max(chunk.score for chunk in chunks)

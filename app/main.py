@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import lru_cache
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
@@ -95,13 +96,19 @@ def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def _resolve_dependency(factory: Callable[[], object]) -> object:
+    """Resolve a dependency while preserving test-time FastAPI overrides."""
+    override = app.dependency_overrides.get(factory)
+    if override is not None:
+        return override()
+    return factory()
+
+
 @app.post("/ask", response_model=AskResponse)
-def ask_question(
-    request: AskRequest,
-    retrieval_service: RetrievalService = Depends(get_retrieval_service),
-    llm_client: OpenRouterClient = Depends(get_llm_client),
-) -> AskResponse:
+def ask_question(request: AskRequest) -> AskResponse:
     """Answer a question using only chunks retrieved from Qdrant."""
+    retrieval_service = _resolve_dependency(get_retrieval_service)
+    llm_client = _resolve_dependency(get_llm_client)
     try:
         retrieved_chunks = retrieval_service.retrieve(request.question)
     except (RetrievalError, VectorStoreError):
