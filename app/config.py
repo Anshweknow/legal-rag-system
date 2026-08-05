@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from dotenv import load_dotenv
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,9 @@ class Settings:
 
 def get_settings() -> Settings:
     """Load settings from the environment and `.env` if present."""
-    load_dotenv()
+    if importlib.util.find_spec("dotenv") is not None:
+        dotenv = __import__("dotenv")
+        dotenv.load_dotenv()
     return Settings(
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),
         qdrant_url=os.getenv("QDRANT_URL", "http://localhost:6333"),
