@@ -4,9 +4,9 @@ from app.retrieval import RetrievalService
 
 
 class FakeEmbedder:
-    def embed_texts(self, texts):
-        assert texts == ["question"]
-        return [[0.1, 0.2]]
+    def embed_query(self, question):
+        assert question == "question"
+        return [0.1, 0.2]
 
 
 class FakeVectorStore:
@@ -74,3 +74,14 @@ def test_retrieval_skips_embedding_for_empty_collection() -> None:
     service = RetrievalService(embedder=FailingEmbedder(), vector_store=EmptyVectorStore())
 
     assert service.retrieve("question") == []
+
+
+def test_retrieval_uses_query_embedding_method() -> None:
+    class QueryOnlyEmbedder:
+        def embed_query(self, question):
+            assert question == "question"
+            return [0.1, 0.2]
+
+    service = RetrievalService(embedder=QueryOnlyEmbedder(), vector_store=FakeVectorStore())
+
+    assert service.retrieve("question")[0].retrieved_text == "snippet"
