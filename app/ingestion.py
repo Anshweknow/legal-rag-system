@@ -48,22 +48,43 @@ class IngestionPipeline:
     def run(self) -> IngestionResult:
         """Execute the full ingestion pipeline."""
         pdf_files = find_pdf_files(self.settings.pdf_dir)
-        logger.info("Found %s PDF files in %s", len(pdf_files), self.settings.pdf_dir)
+        if not pdf_files:
+            logger.warning(
+                "ingestion_no_pdfs_found",
+                extra={"pdf_dir": str(self.settings.pdf_dir)},
+            )
+            return IngestionResult(pdf_count=0, page_count=0, chunk_count=0)
+        logger.info(
+            "ingestion_pdfs_found",
+            extra={"pdf_count": len(pdf_files), "pdf_dir": str(self.settings.pdf_dir)},
+        )
 
         pages = []
         for pdf_file in pdf_files:
             parsed_pages = self.parser.parse_file(pdf_file)
-            logger.info("Parsed %s non-empty pages from %s", len(parsed_pages), pdf_file.name)
+            logger.info(
+                "ingestion_pdf_parsed",
+                extra={"pages": len(parsed_pages), "document": pdf_file.name},
+            )
             pages.extend(parsed_pages)
 
         chunks = self.chunker.chunk_pages(pages)
-        logger.info("Created %s chunks from %s pages", len(chunks), len(pages))
+        logger.info(
+            "ingestion_chunks_created",
+            extra={"chunk_count": len(chunks), "page_count": len(pages)},
+        )
 
         if chunks:
             self.vector_store.ensure_collection(self.embedder.dimension)
             embeddings = self.embedder.embed_texts([chunk.text for chunk in chunks])
             self.vector_store.upload_chunks(chunks, embeddings)
-            logger.info("Uploaded %s chunks to Qdrant", len(chunks))
+            logger.info(
+                "ingestion_chunks_uploaded",
+                extra={
+                    "chunk_count": len(chunks),
+                    "collection": self.settings.qdrant_collection,
+                },
+            )
 
         return IngestionResult(
             pdf_count=len(pdf_files), page_count=len(pages), chunk_count=len(chunks)

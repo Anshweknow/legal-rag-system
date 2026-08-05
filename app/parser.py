@@ -31,5 +31,8 @@ class PDFParser:
                         continue
                     pages.append(DocumentPage(document=pdf_path.name, page=index, text=text))
         except Exception as exc:  # PyMuPDF raises multiple exception types.
-            logger.exception("Failed to parse PDF %s: %s", pdf_path, exc)
+            logger.warning(
+                "pdf_parse_failed",
+                extra={"pdf_path": str(pdf_path), "error": str(exc)},
+            )
         return pages
