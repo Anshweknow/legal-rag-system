@@ -1,3 +1,7 @@
+import os
+
+os.environ.setdefault("OPENROUTER_API_KEY", "test-key")
+
 from fastapi.testclient import TestClient
 
 from app.main import app, get_llm_client, get_retrieval_service
@@ -20,7 +24,10 @@ class FakeRetrievalService:
 class FakeLLMClient:
     def generate(self, prompt: str) -> str:
         assert "Employees may take leave with approval." in prompt
-        return "Leave requires approval. Document: policy.pdf. Page: 17. Retrieved text snippet: Employees may take leave with approval."
+        return (
+            "Leave requires approval. Document: policy.pdf. Page: 17. "
+            "Retrieved text snippet: Employees may take leave with approval."
+        )
 
 
 def test_ask_endpoint_rejects_blank_question() -> None:
