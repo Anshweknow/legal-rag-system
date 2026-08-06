@@ -28,7 +28,6 @@ class DotenvLoadResult:
     found: bool
     loaded: bool
     openrouter_api_key_present: bool
-    openrouter_api_key_prefix: str
 
 
 @dataclass(frozen=True)
@@ -54,13 +53,11 @@ def _load_dotenv() -> DotenvLoadResult:
     if importlib.util.find_spec("dotenv") is not None:
         dotenv = __import__("dotenv")
         loaded = bool(dotenv.load_dotenv(PROJECT_DOTENV_PATH, override=False))
-    api_key = os.getenv("OPENROUTER_API_KEY", "")
     return DotenvLoadResult(
         path=PROJECT_DOTENV_PATH,
         found=PROJECT_DOTENV_PATH.is_file(),
         loaded=loaded,
-        openrouter_api_key_present=bool(api_key),
-        openrouter_api_key_prefix=api_key[:8] if api_key else "",
+        openrouter_api_key_present=bool(os.getenv("OPENROUTER_API_KEY", "")),
     )
 
 
@@ -74,7 +71,6 @@ def log_dotenv_status() -> DotenvLoadResult:
             "dotenv_found": result.found,
             "dotenv_loaded": result.loaded,
             "openrouter_api_key_present": result.openrouter_api_key_present,
-            "openrouter_api_key_prefix": result.openrouter_api_key_prefix,
         },
     )
     return result

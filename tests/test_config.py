@@ -48,7 +48,7 @@ def test_load_dotenv_uses_project_root_env_when_cwd_changes(
     assert settings.openrouter_api_key == "sk-or-v1-project-root"
 
 
-def test_log_dotenv_status_reports_non_secret_key_prefix(
+def test_log_dotenv_status_reports_key_presence_without_secret_material(
     monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     project_env = tmp_path / ".env"
@@ -64,4 +64,4 @@ def test_log_dotenv_status_reports_non_secret_key_prefix(
     assert result.found is True
     assert result.loaded is True
     assert result.openrouter_api_key_present is True
-    assert result.openrouter_api_key_prefix == "sk-or-v1"
+    assert not hasattr(result, "openrouter_api_key_prefix")
