@@ -7,11 +7,28 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.logger import get_logger
+
 DEFAULT_OPENROUTER_MODEL = "google/gemma-4-26b-a4b-it:free"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_DOTENV_PATH = PROJECT_ROOT / ".env"
+
+logger = get_logger(__name__)
 
 
 class ConfigurationError(RuntimeError):
     """Raised when required runtime configuration is missing or invalid."""
+
+
+@dataclass(frozen=True)
+class DotenvLoadResult:
+    """Details about the project `.env` load attempt."""
+
+    path: Path
+    found: bool
+    loaded: bool
+    openrouter_api_key_present: bool
+    openrouter_api_key_prefix: str
 
 
 @dataclass(frozen=True)
@@ -31,10 +48,36 @@ class Settings:
     min_retrieval_score: float
 
 
-def _load_dotenv() -> None:
+def _load_dotenv() -> DotenvLoadResult:
+    """Load the project-root `.env` file regardless of the current directory."""
+    loaded = False
     if importlib.util.find_spec("dotenv") is not None:
         dotenv = __import__("dotenv")
-        dotenv.load_dotenv()
+        loaded = bool(dotenv.load_dotenv(PROJECT_DOTENV_PATH, override=False))
+    api_key = os.getenv("OPENROUTER_API_KEY", "")
+    return DotenvLoadResult(
+        path=PROJECT_DOTENV_PATH,
+        found=PROJECT_DOTENV_PATH.is_file(),
+        loaded=loaded,
+        openrouter_api_key_present=bool(api_key),
+        openrouter_api_key_prefix=api_key[:8] if api_key else "",
+    )
+
+
+def log_dotenv_status() -> DotenvLoadResult:
+    """Load `.env` and log non-secret diagnostics for startup troubleshooting."""
+    result = _load_dotenv()
+    logger.info(
+        "dotenv_status",
+        extra={
+            "dotenv_path": str(result.path),
+            "dotenv_found": result.found,
+            "dotenv_loaded": result.loaded,
+            "openrouter_api_key_present": result.openrouter_api_key_present,
+            "openrouter_api_key_prefix": result.openrouter_api_key_prefix,
+        },
+    )
+    return result
 
 
 def _get_int(name: str, default: str) -> int:
@@ -54,7 +97,7 @@ def _get_float(name: str, default: str) -> float:
 
 
 def get_settings() -> Settings:
-    """Load settings from the environment and `.env` if present."""
+    """Load settings from environment and the project-root `.env` if present."""
     _load_dotenv()
     return Settings(
         openrouter_api_key=os.getenv("OPENROUTER_API_KEY", "").strip(),
