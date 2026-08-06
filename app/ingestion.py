@@ -94,3 +94,24 @@ class IngestionPipeline:
 def run_ingestion() -> IngestionResult:
     """Create and run the default ingestion pipeline from environment settings."""
     return IngestionPipeline(get_settings()).run()
+
+
+def main() -> None:
+    """Run ingestion when this module is executed as a script."""
+    from app.config import validate_settings
+
+    settings = get_settings()
+    validate_settings(settings, require_openrouter=False)
+    result = IngestionPipeline(settings).run()
+    logger.info(
+        "ingestion_finished",
+        extra={
+            "pdf_count": result.pdf_count,
+            "page_count": result.page_count,
+            "chunk_count": result.chunk_count,
+        },
+    )
+
+
+if __name__ == "__main__":
+    main()
