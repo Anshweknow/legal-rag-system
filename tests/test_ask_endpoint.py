@@ -75,3 +75,31 @@ def test_ask_endpoint_unknown_answer_has_no_citations() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"answer": UNKNOWN_ANSWER, "citations": []}
+
+
+def test_openrouter_client_sends_bearer_authorization(monkeypatch) -> None:
+    from app import llm
+    from app.llm import OpenRouterClient
+
+    captured_headers = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def read(self) -> bytes:
+            return b'{"choices":[{"message":{"content":"answer"}}]}'
+
+    def fake_urlopen(request, timeout):
+        captured_headers.update(dict(request.header_items()))
+        return FakeResponse()
+
+    monkeypatch.setattr(llm.urllib.request, "urlopen", fake_urlopen)
+
+    answer = OpenRouterClient(api_key="sk-or-v1-test-key").generate("Question?")
+
+    assert answer == "answer"
+    assert captured_headers["Authorization"] == "Bearer sk-or-v1-test-key"

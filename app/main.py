@@ -10,7 +10,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 
-from app.config import ConfigurationError, get_settings, validate_settings
+from app.config import (
+    ConfigurationError,
+    get_settings,
+    log_dotenv_status,
+    validate_settings,
+)
 from app.ingestion import run_ingestion
 from app.llm import LLMError, OpenRouterClient
 from app.logger import configure_logging, get_logger
@@ -67,6 +72,7 @@ async def validation_exception_handler(
 @app.on_event("startup")
 def validate_configuration_on_startup() -> None:
     """Validate required configuration before serving requests."""
+    log_dotenv_status()
     try:
         validate_settings(get_settings())
     except ConfigurationError as exc:
