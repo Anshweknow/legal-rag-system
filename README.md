@@ -38,7 +38,6 @@ Start Qdrant locally, for example:
 ```bash
 docker run -p 6333:6333 qdrant/qdrant
 ```
-
 ## Running Ingestion
 ```bash
 python -m app.main
@@ -49,7 +48,6 @@ This reads PDFs from `PDF_DIR`, creates embeddings, and uploads chunks with `doc
 ```bash
 uvicorn app.main:app --reload
 ```
-
 ## Example Request
 ```bash
 curl -X POST http://localhost:8000/ask \
